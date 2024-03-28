@@ -8,8 +8,8 @@ use Google\Cloud\Trace\Span as GoogleSpan;
 use Google\Cloud\Trace\Trace as GoogleTrace;
 use Google\Cloud\Trace\TraceClient as GoogleTraceClient;
 use OpenTelemetry\SDK\Common\Future\CancellationInterface;
-use OpenTelemetry\SDK\Common\Future\FutureInterface;
 use OpenTelemetry\SDK\Common\Future\CompletedFuture;
+use OpenTelemetry\SDK\Common\Future\FutureInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
 
