@@ -17,6 +17,9 @@ class Exporter implements SpanExporterInterface
 {
     private readonly SpanConverter $converter;
 
+    /** @var list<SpanDataInterface> */
+    private array $batch = [];
+
     public function __construct(
         private readonly GoogleTraceClient $traceClient
     ) {
@@ -24,6 +27,16 @@ class Exporter implements SpanExporterInterface
     }
 
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
+    {
+        foreach ($batch as $item) {
+            $this->batch[] = $item;
+        }
+
+        // FutureInterface<bool>
+        return new CompletedFuture(true);
+    }
+
+    public function shutdown(?CancellationInterface $cancellation = null): bool
     {
         /**
          * Create a new Trace object with blank metadata,
@@ -40,22 +53,15 @@ class Exporter implements SpanExporterInterface
          */
         $result->setSpans(
             $this->iterable_map(
-                $batch,
+                $this->batch,
                 static fn (SpanDataInterface $span): GoogleSpan => $this->converter->convertSpan($span),
             ),
         );
 
         // FutureInterface<bool>
-        return new CompletedFuture(
-            $this->traceClient->insert(
-                $result,
-            ),
+        return $this->traceClient->insert(
+            $result,
         );
-    }
-
-    public function shutdown(?CancellationInterface $cancellation = null): bool
-    {
-        return true;
     }
 
     public function forceFlush(?CancellationInterface $cancellation = null): bool
