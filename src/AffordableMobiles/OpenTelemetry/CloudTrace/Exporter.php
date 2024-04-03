@@ -20,10 +20,19 @@ class Exporter implements SpanExporterInterface
     /** @var list<SpanDataInterface> */
     private array $batch = [];
 
+    private static Exporter $instance;
+
     public function __construct(
         private readonly GoogleTraceClient $traceClient
     ) {
         $this->converter = new SpanConverter();
+
+        $this->instance = $this;
+    }
+
+    public static function getSpans(): array
+    {
+        return $this->instance->batch;
     }
 
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
