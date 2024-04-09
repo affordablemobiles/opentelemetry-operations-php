@@ -27,12 +27,12 @@ class Exporter implements SpanExporterInterface
     ) {
         $this->converter = new SpanConverter();
 
-        $this->instance = $this;
+        self::$instance = $this;
     }
 
     public static function getSpans(): array
     {
-        return $this->instance?->batch ?? [];
+        return self::$instance?->batch ?? [];
     }
 
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
@@ -63,9 +63,11 @@ class Exporter implements SpanExporterInterface
         $result->setSpans(
             $this->iterable_map(
                 $this->batch,
-                static fn (SpanDataInterface $span): GoogleSpan => $this->converter->convertSpan($span),
+                fn (SpanDataInterface $span): GoogleSpan => $this->converter->convertSpan($span),
             ),
         );
+
+        g_serverless_basic_log('app', 'INFO', 'Trace Export', ['export' => var_export($result, true)]);
 
         // FutureInterface<bool>
         return $this->traceClient->insert(

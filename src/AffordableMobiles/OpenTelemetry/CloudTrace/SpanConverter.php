@@ -84,14 +84,14 @@ class SpanConverter
         }
 
         foreach ($span->getAttributes() as $k => $v) {
-            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValue($v);
+            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
         }
 
         foreach ($span->getResource()->getAttributes() as $k => $v) {
-            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValue($v);
+            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
         }
         foreach ($span->getInstrumentationScope()->getAttributes() as $k => $v) {
-            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValue($v);
+            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
         }
 
         foreach ($span->getEvents() as $event) {
@@ -158,17 +158,6 @@ class SpanConverter
         return $stamp->format('Y-m-d\TH:i:s.u').$nrem.'Z';
     }
 
-    private function sanitiseAttributeValueString(array|bool|float|int|string $value): bool|float|int|string
-    {
-        // Cloud Trage attributes must be strings, but opentelemetry
-        // accepts strings, booleans, numbers, and lists of each.
-        if (\is_array($value)) {
-            return implode(',', array_map(fn ($value) => $this->sanitiseAttributeValueString($value), $value));
-        }
-
-        return $value;
-    }
-
     private function sanitiseAttributeValueString(array|bool|float|int|string $value): string
     {
         // Casting false to string makes an empty string
@@ -176,7 +165,7 @@ class SpanConverter
             return $value ? 'true' : 'false';
         }
 
-        // Cloud Trage attributes must be strings, but opentelemetry
+        // Cloud Trace attributes must be strings, but opentelemetry
         // accepts strings, booleans, numbers, and lists of each.
         if (\is_array($value)) {
             return implode(',', array_map(fn ($value) => $this->sanitiseAttributeValueString($value), $value));
@@ -205,7 +194,7 @@ class SpanConverter
         $attributes = [];
 
         foreach ($link->getAttributes() as $k => $v) {
-            $attributes[$k] = $this->sanitiseAttributeValue($v);
+            $attributes[$k] = $this->sanitiseAttributeValueString($v);
         }
 
         return new GoogleLink(

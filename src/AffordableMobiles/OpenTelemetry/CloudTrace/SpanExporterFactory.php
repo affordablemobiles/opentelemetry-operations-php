@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AffordableMobiles\OpenTelemetry\CloudTrace;
 
+use Google\Cloud\Trace\TraceClient;
 use OpenTelemetry\SDK\Common\Configuration\Configuration;
 use OpenTelemetry\SDK\Trace\SpanExporter\SpanExporterFactoryInterface;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
