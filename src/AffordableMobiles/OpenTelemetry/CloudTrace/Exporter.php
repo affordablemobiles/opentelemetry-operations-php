@@ -67,8 +67,6 @@ class Exporter implements SpanExporterInterface
             ),
         );
 
-        g_serverless_basic_log('app', 'INFO', 'Trace Export', ['export' => var_export($result, true)]);
-
         // FutureInterface<bool>
         return $this->traceClient->insert(
             $result,
