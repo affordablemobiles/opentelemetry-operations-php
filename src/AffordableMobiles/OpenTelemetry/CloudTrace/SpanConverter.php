@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace AffordableMobiles\OpenTelemetry\CloudTrace;
 
+use Google\Cloud\Trace\Annotation as GoogleAnnotation;
 use Google\Cloud\Trace\Link as GoogleLink;
 use Google\Cloud\Trace\Span as GoogleSpan;
 use Google\Cloud\Trace\Status as GoogleStatus;
-use Google\Cloud\Trace\TimeEvent as GoogleTimeEvent;
 use Google\Rpc\Code as GrpcCode;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Common\Time\ClockInterface;
@@ -29,15 +29,15 @@ class SpanConverter
     ];
 
     public const ATTRIBUTE_MAP = [
-        TraceAttributes::HTTP_SCHEME                  => '/http/client_protocol',
-        TraceAttributes::HTTP_METHOD                  => '/http/method',
-        TraceAttributes::HTTP_REQUEST_CONTENT_LENGTH  => '/http/request/size',
-        TraceAttributes::HTTP_RESPONSE_CONTENT_LENGTH => '/http/response/size',
-        TraceAttributes::HTTP_ROUTE                   => '/http/route',
-        TraceAttributes::HTTP_ROUTE                   => '/http/status_code',
-        TraceAttributes::HTTP_URL                     => '/http/url',
-        TraceAttributes::HTTP_USER_AGENT              => '/http/user_agent',
-        TraceAttributes::HTTP_HOST                    => '/http/host',
+        TraceAttributes::HTTP_SCHEME                                 => '/http/client_protocol',
+        TraceAttributes::HTTP_METHOD                                 => '/http/method',
+        TraceAttributes::HTTP_REQUEST_CONTENT_LENGTH                 => '/http/request/size',
+        TraceAttributes::HTTP_RESPONSE_CONTENT_LENGTH                => '/http/response/size',
+        TraceAttributes::HTTP_ROUTE                                  => '/http/route',
+        TraceAttributes::HTTP_RESPONSE_STATUS_CODE                   => '/http/status_code',
+        TraceAttributes::HTTP_URL                                    => '/http/url',
+        TraceAttributes::HTTP_USER_AGENT                             => '/http/user_agent',
+        TraceAttributes::HTTP_HOST                                   => '/http/host',
     ];
 
     private readonly \DateTimeZone $timezone;
@@ -95,7 +95,7 @@ class SpanConverter
         }
 
         foreach ($span->getEvents() as $event) {
-            $spanOptions['timeEvents'][] = self::toTimeEvent($event);
+            $spanOptions['timeEvents'][] = self::toAnnotation($event);
         }
 
         foreach ($span->getLinks() as $link) {
@@ -180,13 +180,19 @@ class SpanConverter
         return (string) $value;
     }
 
-    private static function toTimeEvent(EventInterface $event): GoogleTimeEvent
+    private static function toAnnotation(EventInterface $event): GoogleAnnotation
     {
-        return new GoogleTimeEvent([
+        $eventOptions = [
             'time' => $this->nanoEpochToZulu(
                 $event->getEpochNanos(),
             ),
-        ]);
+        ];
+
+        foreach ($event->getAttributes() as $k => $v) {
+            $eventOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
+        }
+
+        return new GoogleAnnotation($event->getName(), $eventOptions);
     }
 
     private static function toLink(LinkInterface $link): GoogleLink
