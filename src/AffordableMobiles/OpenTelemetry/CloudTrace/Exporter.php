@@ -61,9 +61,9 @@ class Exporter implements SpanExporterInterface
          *  so that the metadata isn't overwritten by the Trace object.
          */
         $result->setSpans(
-            $this->iterable_map(
-                $this->batch,
+            array_map(
                 fn (SpanDataInterface $span): GoogleSpan => $this->converter->convertSpan($span),
+                $this->batch,
             ),
         );
 
@@ -76,16 +76,5 @@ class Exporter implements SpanExporterInterface
     public function forceFlush(?CancellationInterface $cancellation = null): bool
     {
         return true;
-    }
-
-    private function iterable_map(iterable $batch, callable $fn): array
-    {
-        $result = [];
-
-        foreach ($batch as $item) {
-            $result[] = $fn($item);
-        }
-
-        return $result;
     }
 }
