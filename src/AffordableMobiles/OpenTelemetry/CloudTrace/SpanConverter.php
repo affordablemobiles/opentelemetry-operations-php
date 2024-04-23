@@ -54,10 +54,10 @@ class SpanConverter
         $spanOptions = [
             'spanId'            => $span->getSpanId(),
             'name'              => $span->getName(),
-            'startTime'         => $this->nanoEpochToZulu(
+            'startTime'         => self::nanoEpochToZulu(
                 $span->getStartEpochNanos(),
             ),
-            'endTime' => $this->nanoEpochToZulu(
+            'endTime' => self::nanoEpochToZulu(
                 $span->getEndEpochNanos(),
             ),
             'attributes' => [],
@@ -84,14 +84,21 @@ class SpanConverter
         }
 
         foreach ($span->getAttributes() as $k => $v) {
-            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
+            if ('stackTrace' === $k) {
+                try {
+                    $spanOptions['stackTrace'] = unserialize($v, ['allowed_classes' => false]);
+                } catch (\Throwable $ex) {
+                }
+            } else {
+                $spanOptions['attributes'][$k] = self::sanitiseAttributeValueString($v);
+            }
         }
 
         foreach ($span->getResource()->getAttributes() as $k => $v) {
-            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
+            $spanOptions['attributes'][$k] = self::sanitiseAttributeValueString($v);
         }
         foreach ($span->getInstrumentationScope()->getAttributes() as $k => $v) {
-            $spanOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
+            $spanOptions['attributes'][$k] = self::sanitiseAttributeValueString($v);
         }
 
         foreach ($span->getEvents() as $event) {
@@ -136,6 +143,8 @@ class SpanConverter
 
     private static function convertAttributes(array $attributes)
     {
+        $newAttributes = [];
+
         foreach ($attributes as $key => $value) {
             if (\array_key_exists($key, self::ATTRIBUTE_MAP)) {
                 $newAttributes[self::ATTRIBUTE_MAP[$key]] = $value;
@@ -147,7 +156,7 @@ class SpanConverter
         return $newAttributes;
     }
 
-    private function nanoEpochToZulu(int $nanos): string
+    private static function nanoEpochToZulu(int $nanos): string
     {
         $seconds = intdiv($nanos, ClockInterface::NANOS_PER_SECOND);
         $micros  = intdiv($nanos % ClockInterface::NANOS_PER_SECOND, ClockInterface::NANOS_PER_MICROSECOND);
@@ -158,7 +167,7 @@ class SpanConverter
         return $stamp->format('Y-m-d\TH:i:s.u').$nrem.'Z';
     }
 
-    private function sanitiseAttributeValueString(array|bool|float|int|string $value): string
+    private static function sanitiseAttributeValueString(array|bool|float|int|string $value): string
     {
         // Casting false to string makes an empty string
         if (\is_bool($value)) {
@@ -168,7 +177,7 @@ class SpanConverter
         // Cloud Trace attributes must be strings, but opentelemetry
         // accepts strings, booleans, numbers, and lists of each.
         if (\is_array($value)) {
-            return implode(',', array_map(fn ($value) => $this->sanitiseAttributeValueString($value), $value));
+            return implode(',', array_map(static fn ($value) => self::sanitiseAttributeValueString($value), $value));
         }
 
         // Floats will lose precision if their string representation
@@ -183,13 +192,13 @@ class SpanConverter
     private static function toAnnotation(EventInterface $event): GoogleAnnotation
     {
         $eventOptions = [
-            'time' => $this->nanoEpochToZulu(
+            'time' => self::nanoEpochToZulu(
                 $event->getEpochNanos(),
             ),
         ];
 
         foreach ($event->getAttributes() as $k => $v) {
-            $eventOptions['attributes'][$k] = $this->sanitiseAttributeValueString($v);
+            $eventOptions['attributes'][$k] = self::sanitiseAttributeValueString($v);
         }
 
         return new GoogleAnnotation($event->getName(), $eventOptions);
@@ -200,7 +209,7 @@ class SpanConverter
         $attributes = [];
 
         foreach ($link->getAttributes() as $k => $v) {
-            $attributes[$k] = $this->sanitiseAttributeValueString($v);
+            $attributes[$k] = self::sanitiseAttributeValueString($v);
         }
 
         return new GoogleLink(
